@@ -1,54 +1,286 @@
-resource "oci_core_vcn" "simple" {
-  count          = local.use_existing_network ? 0 : 1
-  cidr_block     = var.vcn_cidr_block
-  dns_label      = substr(var.vcn_dns_label, 0, 15)
-  compartment_id = var.network_compartment_ocid
-  display_name   = var.vcn_display_name
+## Copyright © 2021, Oracle and/or its affiliates. 
+## All rights reserved. The Universal Permissive License (UPL), Version 1.0 as shown at http://oss.oracle.com/licenses/upl
 
-  freeform_tags = map(var.tag_key_name, var.tag_value)
+resource "oci_core_vcn" "oke_vcn" {
+  count          = var.use_existing_vcn ? 0 : 1
+  cidr_block     = var.vcn_cidr
+  compartment_id = var.compartment_ocid
+  display_name   = "oke_vcn"
 }
 
-#IGW
-resource "oci_core_internet_gateway" "simple_internet_gateway" {
-  count          = local.use_existing_network ? 0 : 1
-  compartment_id = var.network_compartment_ocid
-  vcn_id         = oci_core_vcn.simple[count.index].id
-  enabled        = "true"
-  display_name   = "${var.vcn_display_name}-igw"
-
-  freeform_tags = map(var.tag_key_name, var.tag_value)
+resource "oci_core_service_gateway" "oke_sg" {
+  count          = var.use_existing_vcn ? 0 : 1
+  compartment_id = var.compartment_ocid
+  display_name   = "oke_sg"
+  vcn_id         = oci_core_vcn.oke_vcn[0].id
+  services {
+    service_id = lookup(data.oci_core_services.AllOCIServices[0].services[0], "id")
+  }
 }
 
-#simple subnet
-resource "oci_core_subnet" "simple_subnet" {
-  count                      = local.use_existing_network ? 0 : 1
-  cidr_block                 = var.subnet_cidr_block
-  compartment_id             = var.network_compartment_ocid
-  vcn_id                     = oci_core_vcn.simple[count.index].id
-  display_name               = var.subnet_display_name
-  dns_label                  = substr(var.subnet_dns_label, 0, 15)
-  prohibit_public_ip_on_vnic = ! local.is_public_subnet
-
-  freeform_tags = map(var.tag_key_name, var.tag_value)
+resource "oci_core_nat_gateway" "oke_natgw" {
+  count          = var.use_existing_vcn ? 0 : 1
+  compartment_id = var.compartment_ocid
+  display_name   = "oke_natgw"
+  vcn_id         = oci_core_vcn.oke_vcn[0].id
 }
 
-resource "oci_core_route_table" "simple_route_table" {
-  count          = local.use_existing_network ? 0 : 1
-  compartment_id = var.network_compartment_ocid
-  vcn_id         = oci_core_vcn.simple[count.index].id
-  display_name   = "${var.subnet_display_name}-rt"
+resource "oci_core_route_table" "oke_rt_via_natgw_and_sg" {
+  count          = var.use_existing_vcn ? 0 : 1
+  compartment_id = var.compartment_ocid
+  vcn_id         = oci_core_vcn.oke_vcn[0].id
+  display_name   = "oke_rt_via_natgw"
 
   route_rules {
-    network_entity_id = oci_core_internet_gateway.simple_internet_gateway[count.index].id
     destination       = "0.0.0.0/0"
     destination_type  = "CIDR_BLOCK"
+    network_entity_id = oci_core_nat_gateway.oke_natgw[0].id
   }
 
-  freeform_tags = map(var.tag_key_name, var.tag_value)
+  route_rules {
+    destination       = lookup(data.oci_core_services.AllOCIServices[0].services[0], "cidr_block")
+    destination_type  = "SERVICE_CIDR_BLOCK"
+    network_entity_id = oci_core_service_gateway.oke_sg[0].id
+  }
 }
 
-resource "oci_core_route_table_attachment" "route_table_attachment" {
-  count          = local.use_existing_network ? 0 : 1
-  subnet_id      = oci_core_subnet.simple_subnet[count.index].id
-  route_table_id = oci_core_route_table.simple_route_table[count.index].id
+resource "oci_core_internet_gateway" "oke_igw" {
+  count          = var.use_existing_vcn ? 0 : 1
+  compartment_id = var.compartment_ocid
+  display_name   = "oke_igw"
+  vcn_id         = oci_core_vcn.oke_vcn[0].id
 }
+
+resource "oci_core_route_table" "oke_rt_via_igw" {
+  count          = var.use_existing_vcn ? 0 : 1
+  compartment_id = var.compartment_ocid
+  vcn_id         = oci_core_vcn.oke_vcn[0].id
+  display_name   = "oke_rt_via_igw"
+
+  route_rules {
+    destination       = "0.0.0.0/0"
+    destination_type  = "CIDR_BLOCK"
+    network_entity_id = oci_core_internet_gateway.oke_igw[0].id
+  }
+}
+
+resource "oci_core_security_list" "oke_sec_list" {
+  count          = var.use_existing_vcn ? 0 : 1
+  compartment_id = var.compartment_ocid
+  display_name   = "oke_sec_list"
+  vcn_id         = oci_core_vcn.oke_vcn[0].id
+
+  egress_security_rules {
+    protocol    = "All"
+    destination = "0.0.0.0/0"
+  }
+
+  ingress_security_rules {
+    protocol = "17"
+    source   = var.vcn_cidr
+  }
+}
+
+resource "oci_core_security_list" "oke_api_endpoint_subnet_sec_list" {
+  count          = var.use_existing_vcn ? 0 : 1
+  compartment_id = var.compartment_ocid
+  display_name   = "oke_api_endpoint_subnet_sec_list"
+  vcn_id         = oci_core_vcn.oke_vcn[0].id
+
+  # egress_security_rules
+
+  egress_security_rules {
+    protocol         = "6"
+    destination_type = "CIDR_BLOCK"
+    destination      = var.api_endpoint_subnet_cidr
+  }
+
+  egress_security_rules {
+    protocol         = 1
+    destination_type = "CIDR_BLOCK"
+    destination      = var.api_endpoint_subnet_cidr
+
+    icmp_options {
+      type = 3
+      code = 4
+    }
+  }
+
+  egress_security_rules {
+    protocol         = "6"
+    destination_type = "SERVICE_CIDR_BLOCK"
+    destination      = lookup(data.oci_core_services.AllOCIServices[0].services[0], "cidr_block")
+
+    tcp_options {
+      min = 443
+      max = 443
+    }
+  }
+
+  ingress_security_rules {
+    protocol = "6"
+    source   = var.node_subnet_cidr
+
+    tcp_options {
+      min = 6443
+      max = 6443
+    }
+  }
+
+  ingress_security_rules {
+    protocol = "6"
+    source   = var.node_subnet_cidr
+
+    tcp_options {
+      min = 12250
+      max = 12250
+    }
+  }
+
+  ingress_security_rules {
+    protocol = "6"
+    source   = "0.0.0.0/0"
+
+    tcp_options {
+      min = 6443
+      max = 6443
+    }
+  }
+
+  ingress_security_rules {
+    protocol = 1
+    source   = var.node_subnet_cidr
+
+    icmp_options {
+      type = 3
+      code = 4
+    }
+  }
+
+}
+
+resource "oci_core_security_list" "oke_node_subnet_sec_list" {
+  count          = var.use_existing_vcn ? 0 : 1
+  compartment_id = var.compartment_ocid
+  display_name   = "oke_node_subnet_sec_list"
+  vcn_id         = oci_core_vcn.oke_vcn[0].id
+
+  egress_security_rules {
+    protocol         = "All"
+    destination_type = "CIDR_BLOCK"
+    destination      = var.node_subnet_cidr
+  }
+
+  egress_security_rules {
+    protocol    = 1
+    destination = "0.0.0.0/0"
+
+    icmp_options {
+      type = 3
+      code = 4
+    }
+  }
+
+  egress_security_rules {
+    protocol         = "6"
+    destination_type = "SERVICE_CIDR_BLOCK"
+    destination      = lookup(data.oci_core_services.AllOCIServices[0].services[0], "cidr_block")
+  }
+
+  egress_security_rules {
+    protocol         = "6"
+    destination_type = "CIDR_BLOCK"
+    destination      = var.api_endpoint_subnet_cidr
+
+    tcp_options {
+      min = 6443
+      max = 6443
+    }
+  }
+
+  egress_security_rules {
+    protocol         = "6"
+    destination_type = "CIDR_BLOCK"
+    destination      = var.api_endpoint_subnet_cidr
+
+    tcp_options {
+      min = 12250
+      max = 12250
+    }
+  }
+
+  egress_security_rules {
+    protocol         = "6"
+    destination_type = "CIDR_BLOCK"
+    destination      = "0.0.0.0/0"
+  }
+
+  ingress_security_rules {
+    protocol = "All"
+    source   = var.node_subnet_cidr
+  }
+
+  ingress_security_rules {
+    protocol = "6"
+    source   = var.api_endpoint_subnet_cidr
+  }
+
+  ingress_security_rules {
+    protocol = 1
+    source   = "0.0.0.0/0"
+
+    icmp_options {
+      type = 3
+      code = 4
+    }
+  }
+
+  ingress_security_rules {
+    protocol = "6"
+    source   = "0.0.0.0/0"
+
+    tcp_options {
+      min = 22
+      max = 22
+    }
+  }
+
+}
+
+resource "oci_core_subnet" "oke_api_endpoint_subnet" {
+  count                      = (var.use_existing_vcn && var.oke_cluster["vcn_native"]) ? 0 : 1
+  cidr_block                 = var.api_endpoint_subnet_cidr
+  compartment_id             = var.compartment_ocid
+  vcn_id                     = oci_core_vcn.oke_vcn[0].id
+  display_name               = "oke_api_endpoint_subnet"
+  security_list_ids          = [oci_core_vcn.oke_vcn[0].default_security_list_id, oci_core_security_list.oke_api_endpoint_subnet_sec_list[0].id]
+  route_table_id             = var.oke_cluster["is_api_endpoint_subnet_public"] ? oci_core_route_table.oke_rt_via_igw[0].id : oci_core_route_table.oke_rt_via_natgw_and_sg[0].id
+  prohibit_public_ip_on_vnic = var.oke_cluster["is_api_endpoint_subnet_public"] ? false : true
+}
+
+resource "oci_core_subnet" "oke_lb_subnet" {
+  count          = (var.use_existing_vcn && var.oke_cluster["vcn_native"]) ? 0 : 1
+  cidr_block     = var.lb_subnet_cidr
+  compartment_id = var.compartment_ocid
+  vcn_id         = oci_core_vcn.oke_vcn[0].id
+  display_name   = "oke_lb_subnet"
+
+  security_list_ids          = [oci_core_vcn.oke_vcn[0].default_security_list_id]
+  route_table_id             = var.oke_cluster["is_lb_subnet_public"] ? oci_core_route_table.oke_rt_via_igw[0].id : oci_core_route_table.oke_rt_via_natgw_and_sg[0].id
+  prohibit_public_ip_on_vnic = var.oke_cluster["is_lb_subnet_public"] ? false : true
+}
+
+resource "oci_core_subnet" "oke_node_subnet" {
+  count          = (var.use_existing_vcn && var.oke_cluster["vcn_native"]) ? 0 : 1
+  cidr_block     = var.node_subnet_cidr
+  compartment_id = var.compartment_ocid
+  vcn_id         = oci_core_vcn.oke_vcn[0].id
+  display_name   = "oke_node_subnet"
+
+  security_list_ids          = [oci_core_vcn.oke_vcn[0].default_security_list_id, oci_core_security_list.oke_node_subnet_sec_list[0].id]
+  route_table_id             = var.oke_cluster["is_node_subnet_public"] ? oci_core_route_table.oke_rt_via_igw[0].id : oci_core_route_table.oke_rt_via_natgw_and_sg[0].id
+  prohibit_public_ip_on_vnic = var.oke_cluster["is_node_subnet_public"] ? false : true
+}
+
+
+
