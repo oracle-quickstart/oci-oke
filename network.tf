@@ -119,7 +119,7 @@ resource "oci_core_security_list" "oke_api_endpoint_subnet_sec_list" {
 
   ingress_security_rules {
     protocol = "6"
-    source   = var.node_subnet_cidr
+    source   = var.nodepool_subnet_cidr
 
     tcp_options {
       min = 6443
@@ -129,7 +129,7 @@ resource "oci_core_security_list" "oke_api_endpoint_subnet_sec_list" {
 
   ingress_security_rules {
     protocol = "6"
-    source   = var.node_subnet_cidr
+    source   = var.nodepool_subnet_cidr
 
     tcp_options {
       min = 12250
@@ -149,7 +149,7 @@ resource "oci_core_security_list" "oke_api_endpoint_subnet_sec_list" {
 
   ingress_security_rules {
     protocol = 1
-    source   = var.node_subnet_cidr
+    source   = var.nodepool_subnet_cidr
 
     icmp_options {
       type = 3
@@ -159,7 +159,7 @@ resource "oci_core_security_list" "oke_api_endpoint_subnet_sec_list" {
 
 }
 
-resource "oci_core_security_list" "oke_node_subnet_sec_list" {
+resource "oci_core_security_list" "oke_nodepool_subnet_sec_list" {
   count          = var.use_existing_vcn ? 0 : 1
   compartment_id = var.compartment_ocid
   display_name   = "oke_node_subnet_sec_list"
@@ -168,7 +168,7 @@ resource "oci_core_security_list" "oke_node_subnet_sec_list" {
   egress_security_rules {
     protocol         = "All"
     destination_type = "CIDR_BLOCK"
-    destination      = var.node_subnet_cidr
+    destination      = var.nodepool_subnet_cidr
   }
 
   egress_security_rules {
@@ -217,7 +217,7 @@ resource "oci_core_security_list" "oke_node_subnet_sec_list" {
 
   ingress_security_rules {
     protocol = "All"
-    source   = var.node_subnet_cidr
+    source   = var.nodepool_subnet_cidr
   }
 
   ingress_security_rules {
@@ -248,38 +248,38 @@ resource "oci_core_security_list" "oke_node_subnet_sec_list" {
 }
 
 resource "oci_core_subnet" "oke_api_endpoint_subnet" {
-  count                      = (var.use_existing_vcn && var.oke_cluster["vcn_native"]) ? 0 : 1
+  count                      = (var.use_existing_vcn && var.vcn_native) ? 0 : 1
   cidr_block                 = var.api_endpoint_subnet_cidr
   compartment_id             = var.compartment_ocid
   vcn_id                     = oci_core_vcn.oke_vcn[0].id
   display_name               = "oke_api_endpoint_subnet"
   security_list_ids          = [oci_core_vcn.oke_vcn[0].default_security_list_id, oci_core_security_list.oke_api_endpoint_subnet_sec_list[0].id]
-  route_table_id             = var.oke_cluster["is_api_endpoint_subnet_public"] ? oci_core_route_table.oke_rt_via_igw[0].id : oci_core_route_table.oke_rt_via_natgw_and_sg[0].id
-  prohibit_public_ip_on_vnic = var.oke_cluster["is_api_endpoint_subnet_public"] ? false : true
+  route_table_id             = var.is_api_endpoint_subnet_public ? oci_core_route_table.oke_rt_via_igw[0].id : oci_core_route_table.oke_rt_via_natgw_and_sg[0].id
+  prohibit_public_ip_on_vnic = var.is_api_endpoint_subnet_public ? false : true
 }
 
 resource "oci_core_subnet" "oke_lb_subnet" {
-  count          = (var.use_existing_vcn && var.oke_cluster["vcn_native"]) ? 0 : 1
+  count          = (var.use_existing_vcn && var.vcn_native) ? 0 : 1
   cidr_block     = var.lb_subnet_cidr
   compartment_id = var.compartment_ocid
   vcn_id         = oci_core_vcn.oke_vcn[0].id
   display_name   = "oke_lb_subnet"
 
   security_list_ids          = [oci_core_vcn.oke_vcn[0].default_security_list_id]
-  route_table_id             = var.oke_cluster["is_lb_subnet_public"] ? oci_core_route_table.oke_rt_via_igw[0].id : oci_core_route_table.oke_rt_via_natgw_and_sg[0].id
-  prohibit_public_ip_on_vnic = var.oke_cluster["is_lb_subnet_public"] ? false : true
+  route_table_id             = var.is_lb_subnet_public ? oci_core_route_table.oke_rt_via_igw[0].id : oci_core_route_table.oke_rt_via_natgw_and_sg[0].id
+  prohibit_public_ip_on_vnic = var.is_lb_subnet_public ? false : true
 }
 
-resource "oci_core_subnet" "oke_node_subnet" {
-  count          = (var.use_existing_vcn && var.oke_cluster["vcn_native"]) ? 0 : 1
-  cidr_block     = var.node_subnet_cidr
+resource "oci_core_subnet" "oke_nodepool_subnet" {
+  count          = (var.use_existing_vcn && var.vcn_native) ? 0 : 1
+  cidr_block     = var.nodepool_subnet_cidr
   compartment_id = var.compartment_ocid
   vcn_id         = oci_core_vcn.oke_vcn[0].id
-  display_name   = "oke_node_subnet"
+  display_name   = "oke_nodepool_subnet"
 
   security_list_ids          = [oci_core_vcn.oke_vcn[0].default_security_list_id, oci_core_security_list.oke_node_subnet_sec_list[0].id]
-  route_table_id             = var.oke_cluster["is_node_subnet_public"] ? oci_core_route_table.oke_rt_via_igw[0].id : oci_core_route_table.oke_rt_via_natgw_and_sg[0].id
-  prohibit_public_ip_on_vnic = var.oke_cluster["is_node_subnet_public"] ? false : true
+  route_table_id             = var.is_nodepool_subnet_public ? oci_core_route_table.oke_rt_via_igw[0].id : oci_core_route_table.oke_rt_via_natgw_and_sg[0].id
+  prohibit_public_ip_on_vnic = var.is_nodepool_subnet_public ? false : true
 }
 
 

@@ -7,14 +7,14 @@ resource "tls_private_key" "public_private_key_pair" {
 
 resource "oci_containerengine_cluster" "oci_oke_cluster" {
   compartment_id     = var.compartment_ocid
-  kubernetes_version = var.oke_cluster["k8s_version"]
-  name               = var.oke_cluster["name"]
-  vcn_id             = var.vcn
+  kubernetes_version = var.k8s_version
+  name               = var.oke_cluster_name
+  vcn_id             = var.vcn_id
 
   dynamic "endpoint_config" {
-    for_each = var.oke_cluster["vcn_native"] ? [1] : []
+    for_each = var.vcn_native ? [1] : []
     content {
-      is_public_ip_enabled = var.oke_cluster["is_api_endpoint_subnet_public"]
+      is_public_ip_enabled = var.is_api_endpoint_subnet_public
       subnet_id            = var.use_existing_vcn ? var.api_endpoint_subnet_id : oci_core_subnet.oke_api_endpoint_subnet[0].id
     }
   }
@@ -28,8 +28,8 @@ resource "oci_containerengine_cluster" "oci_oke_cluster" {
     }
 
     kubernetes_network_config {
-      pods_cidr     = var.oke_cluster["pods_cidr"]
-      services_cidr = var.oke_cluster["services_cidr"]
+      pods_cidr     = var.pods_cidr
+      services_cidr = var.services_cidr
     }
   }
 }
@@ -37,9 +37,9 @@ resource "oci_containerengine_cluster" "oci_oke_cluster" {
 resource "oci_containerengine_node_pool" "oci_oke_node_pool" {
   cluster_id         = oci_containerengine_cluster.oci_oke_cluster.id
   compartment_id     = var.compartment_ocid
-  kubernetes_version = var.oke_cluster["k8s_version"]
-  name               = var.oke_cluster["pool_name"]
-  node_shape         = var.oke_cluster["node_shape"]
+  kubernetes_version = var.k8s_version
+  name               = var.pool_name
+  node_shape         = var.node_shape
 
   initial_node_labels {
     key   = var.node_pool_initial_node_labels_key
@@ -47,7 +47,7 @@ resource "oci_containerengine_node_pool" "oci_oke_node_pool" {
   }
 
   node_source_details {
-    image_id    = element([for source in data.oci_containerengine_node_pool_option.test_node_pool_option.sources : source.image_id if length(regexall("Oracle-Linux-${var.oke_cluster["node_linux_version"]}-20[0-9]*.*", source.source_name)) > 0], 0)
+    image_id    = element([for source in data.oci_containerengine_node_pool_option.test_node_pool_option.sources : source.image_id if length(regexall("Oracle-Linux-${var.node_linux_version}-20[0-9]*.*", source.source_name)) > 0], 0)
     source_type = "IMAGE"
   }
 
@@ -56,16 +56,16 @@ resource "oci_containerengine_node_pool" "oci_oke_node_pool" {
   node_config_details {
     placement_configs {
       availability_domain = var.availability_domain
-      subnet_id           = var.use_existing_vcn ? var.node_subnet_id : oci_core_subnet.oke_node_subnet[0].id
+      subnet_id           = var.use_existing_vcn ? var.nodepool_subnet_id : oci_core_subnet.oke_nodepool_subnet[0].id
     }
-    size = var.oke_cluster["node_count"]
+    size = var.node_count
   }
 
   dynamic "node_shape_config" {
-    for_each = length(regexall("Flex", var.oke_cluster["node_shape"])) > 0 ? [1] : []
+    for_each = length(regexall("Flex", var.node_shape)) > 0 ? [1] : []
     content {
-      ocpus         = var.oke_cluster["node_ocpus"]
-      memory_in_gbs = var.oke_cluster["node_memory"]
+      ocpus         = var.node_ocpus
+      memory_in_gbs = var.node_memory
     }
   }
 
