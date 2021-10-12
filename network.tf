@@ -64,23 +64,6 @@ resource "oci_core_route_table" "oke_rt_via_igw" {
   }
 }
 
-resource "oci_core_security_list" "oke_sec_list" {
-  count          = var.use_existing_vcn ? 0 : 1
-  compartment_id = var.compartment_ocid
-  display_name   = "oke_sec_list"
-  vcn_id         = oci_core_vcn.oke_vcn[0].id
-
-  egress_security_rules {
-    protocol    = "All"
-    destination = "0.0.0.0/0"
-  }
-
-  ingress_security_rules {
-    protocol = "17"
-    source   = var.vcn_cidr
-  }
-}
-
 resource "oci_core_security_list" "oke_api_endpoint_subnet_sec_list" {
   count          = var.use_existing_vcn ? 0 : 1
   compartment_id = var.compartment_ocid
@@ -92,13 +75,13 @@ resource "oci_core_security_list" "oke_api_endpoint_subnet_sec_list" {
   egress_security_rules {
     protocol         = "6"
     destination_type = "CIDR_BLOCK"
-    destination      = var.api_endpoint_subnet_cidr
+    destination      = var.nodepool_subnet_cidr
   }
 
   egress_security_rules {
     protocol         = 1
     destination_type = "CIDR_BLOCK"
-    destination      = var.api_endpoint_subnet_cidr
+    destination      = var.nodepool_subnet_cidr
 
     icmp_options {
       type = 3
@@ -162,7 +145,7 @@ resource "oci_core_security_list" "oke_api_endpoint_subnet_sec_list" {
 resource "oci_core_security_list" "oke_nodepool_subnet_sec_list" {
   count          = var.use_existing_vcn ? 0 : 1
   compartment_id = var.compartment_ocid
-  display_name   = "oke_node_subnet_sec_list"
+  display_name   = "oke_nodepool_subnet_sec_list"
   vcn_id         = oci_core_vcn.oke_vcn[0].id
 
   egress_security_rules {
@@ -277,7 +260,7 @@ resource "oci_core_subnet" "oke_nodepool_subnet" {
   vcn_id         = oci_core_vcn.oke_vcn[0].id
   display_name   = "oke_nodepool_subnet"
 
-  security_list_ids          = [oci_core_vcn.oke_vcn[0].default_security_list_id, oci_core_security_list.oke_node_subnet_sec_list[0].id]
+  security_list_ids          = [oci_core_vcn.oke_vcn[0].default_security_list_id, oci_core_security_list.oke_nodepool_subnet_sec_list[0].id]
   route_table_id             = var.is_nodepool_subnet_public ? oci_core_route_table.oke_rt_via_igw[0].id : oci_core_route_table.oke_rt_via_natgw_and_sg[0].id
   prohibit_public_ip_on_vnic = var.is_nodepool_subnet_public ? false : true
 }

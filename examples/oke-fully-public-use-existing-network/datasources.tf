@@ -10,7 +10,6 @@ data "oci_containerengine_node_pool_option" "oci_oke_node_pool_option" {
 }
 
 data "oci_core_services" "AllOCIServices" {
-  count = var.use_existing_vcn ? 0 : 1
   filter {
     name   = "name"
     values = ["All .* Services In Oracle Services Network"]

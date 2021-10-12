@@ -9,7 +9,7 @@ resource "oci_containerengine_cluster" "oci_oke_cluster" {
   compartment_id     = var.compartment_ocid
   kubernetes_version = var.k8s_version
   name               = var.oke_cluster_name
-  vcn_id             = var.vcn_id
+  vcn_id             = var.use_existing_vcn ? var.vcn_id : oci_core_vcn.oke_vcn[0].id
 
   dynamic "endpoint_config" {
     for_each = var.vcn_native ? [1] : []
@@ -47,7 +47,7 @@ resource "oci_containerengine_node_pool" "oci_oke_node_pool" {
   }
 
   node_source_details {
-    image_id    = element([for source in data.oci_containerengine_node_pool_option.test_node_pool_option.sources : source.image_id if length(regexall("Oracle-Linux-${var.node_linux_version}-20[0-9]*.*", source.source_name)) > 0], 0)
+    image_id    = element([for source in data.oci_containerengine_node_pool_option.oci_oke_node_pool_option.sources : source.image_id if length(regexall("Oracle-Linux-${var.node_linux_version}-20[0-9]*.*", source.source_name)) > 0], 0)
     source_type = "IMAGE"
   }
 
@@ -55,7 +55,7 @@ resource "oci_containerengine_node_pool" "oci_oke_node_pool" {
 
   node_config_details {
     placement_configs {
-      availability_domain = var.availability_domain
+      availability_domain = var.availability_domain == "" ? data.oci_identity_availability_domains.ADs.availability_domains[0]["name"] : var.availability_domain
       subnet_id           = var.use_existing_vcn ? var.nodepool_subnet_id : oci_core_subnet.oke_nodepool_subnet[0].id
     }
     size = var.node_count

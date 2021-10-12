@@ -19,8 +19,14 @@ Instead of figuring out the details of how to run a piece of infrastructure from
 Each Module has the following folder structure:
 * [root](): This folder contains a root module.
 * [examples](): This folder contains examples of how to use the modules.
-  - [fully-private-oke-no-existing-network](examples/fully-private-oke-no-existing-network): This is an example of how to use the oci-oke module to deploy Container Engine for Kubernetes (OKE) with VCN-native support and all subnets private where network cloud infrastrucutre elements will be deployed within the body of the module.
-  - [fully-private-oke-use-existing-network](examples/fully-private-oke-use-existing-network): This is an example of how to use the oci-oke module to deploy Container Engine for Kubernetes (OKE) with VCN-native support and all subnets private where network cloud infrastrucutre elements will be injected into the module.
+  - [Fully Private OKE (LB, APIEndpoint and PoolNode in private subnets) + network deployed by module](examples/oke-fully-private-no-existing-network): This is an example of how to use the oci-oke module to deploy Container Engine for Kubernetes (OKE) with VCN-native support and all subnets are private and network cloud infrastrucutre elements will be deployed within the body of the module.
+  - [Fully Private OKE (LB, APIEndpoint and PoolNode in private subnets) + custom network injected into module](examples/oke-fully-private-use-existing-network): This is an example of how to use the oci-oke module to deploy Container Engine for Kubernetes (OKE) with VCN-native support and all subnets are private and network cloud infrastrucutre elements will be injected into the module.
+  - [OKE with public LB, but APIEndpoint and PoolNode in private subnets) + network deployed by module](examples/oke-public-lb-private-api-endpoint-and-worker-no-existing-network): This is an example of how to use the oci-oke module to deploy Container Engine for Kubernetes (OKE) with VCN-native support, public LB (Internet-facing) and API Endpoint + NodePool in private subnets where network cloud infrastrucutre elements will be deployed within the body of the module.
+  - [OKE with public LB, but APIEndpoint and PoolNode in private subnets) + custom network injected into module](examples/oke-public-lb-private-api-endpoint-and-worker-use-existing-network): This is an example of how to use the oci-oke module to deploy Container Engine for Kubernetes (OKE) with VCN-native support, public LB (Internet-facing) and API Endpoint + NodePool in private subnets where custom network cloud infrastrucutre elements will be injected into the module.
+  - [OKE with public LB and public APIEndpoint, but PoolNode in private subnets) + network deployed by module](examples/oke-public-lb-and-api-endpoint-private-workers-no-existing-network): This is an example of how to use the oci-oke module to deploy Container Engine for Kubernetes (OKE) with VCN-native support, public LB (Internet-facing), public API Endpoint (Internet facing), but NodePool in private subnet where network cloud infrastrucutre elements will be deployed within the body of the module.
+  - [OKE with public LB and public APIEndpoint, but PoolNode in private subnets) + custom network injected into module](examples/oke-public-lb-and-api-endpoint-private-workers-use-existing-network): This is an example of how to use the oci-oke module to deploy Container Engine for Kubernetes (OKE) with VCN-native support, public LB (Internet-facing), public API Endpoint (Internet-facing), but NodePool in private subnets where custom network cloud infrastrucutre elements will be injected into the module.
+   - [Fully Public OKE (LB, APIEndpoint and PoolNode in public subnets) + network deployed by module](examples/oke-fully-public-no-existing-network): This is an example of how to use the oci-oke module to deploy Container Engine for Kubernetes (OKE) with VCN-native support and all subnets are public and network cloud infrastrucutre elements will be deployed within the body of the module.
+  - [Fully Public OKE (LB, APIEndpoint and PoolNode in public subnets) + custom network injected into module](examples/oke-fully-public-use-existing-network): This is an example of how to use the oci-oke module to deploy Container Engine for Kubernetes (OKE) with VCN-native support and all subnets are public and network cloud infrastrucutre elements will be injected into the module.
 
 To deploy OKE using this Module:
 
@@ -28,6 +34,7 @@ To deploy OKE using this Module:
 module "oci-oke" {
   source                 = "github.com/oci-quickstart/oci-oke"
   compartment_ocid       = ${var.compartment_ocid}
+  availability_domain    = ${availablity_domain_name}
   vcn                    = ${var.vcn_id}
   api_endpoint_subnet_id = ${var.api_endpoint_subnet_id}
   lb_subnet_id           = ${var.lb_subnet_id}

@@ -1,9 +1,17 @@
 ## Copyright © 2020, Oracle and/or its affiliates. 
 ## All rights reserved. The Universal Permissive License (UPL), Version 1.0 as shown at http://oss.oracle.com/licenses/upl
 
-variable "availability_domain" {}
-variable "compartment_ocid" {}
-variable "tenancy_ocid" {}
+variable "availability_domain" {
+  default = ""
+}
+
+variable "compartment_ocid" {
+  default = ""
+}
+
+variable "tenancy_ocid" {
+  default = ""
+}
 
 variable "use_existing_vcn" {
   default = true
