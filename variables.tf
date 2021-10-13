@@ -108,15 +108,23 @@ variable "node_count" {
 variable "cluster_options_add_ons_is_kubernetes_dashboard_enabled" {
   default = true
 }
+
 variable "cluster_options_add_ons_is_tiller_enabled" {
   default = true
 }
+
 variable "node_pool_initial_node_labels_key" {
   default = "key"
 }
+
 variable "node_pool_initial_node_labels_value" {
   default = "value"
 }
+
+variable "cluster_kube_config_token_version" {
+  default = "2.0.0"
+}
+
 variable "ssh_public_key" {
   default = ""
 }

@@ -21,3 +21,8 @@ data "oci_core_services" "AllOCIServices" {
 data "oci_identity_availability_domains" "ADs" {
   compartment_id = var.tenancy_ocid
 }
+
+data "oci_containerengine_cluster_kube_config" "KubeConfig" {
+  cluster_id    = oci_containerengine_cluster.oci_oke_cluster.id
+  token_version = var.cluster_kube_config_token_version
+}

@@ -16,3 +16,7 @@ output "node_pool" {
     name               = oci_containerengine_node_pool.oci_oke_node_pool.name
   }
 }
+
+output "KubeConfig" {
+  value = data.oci_containerengine_cluster_kube_config.KubeConfig.content
+}
