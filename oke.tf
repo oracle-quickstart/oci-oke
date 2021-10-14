@@ -27,6 +27,10 @@ resource "oci_containerengine_cluster" "oci_oke_cluster" {
       is_tiller_enabled               = var.cluster_options_add_ons_is_tiller_enabled
     }
 
+    admission_controller_options {
+      is_pod_security_policy_enabled = var.cluster_options_admission_controller_options_is_pod_security_policy_enabled
+    }
+
     kubernetes_network_config {
       pods_cidr     = var.pods_cidr
       services_cidr = var.services_cidr
@@ -47,8 +51,9 @@ resource "oci_containerengine_node_pool" "oci_oke_node_pool" {
   }
 
   node_source_details {
-    image_id    = var.node_image_id == "" ? element([for source in data.oci_containerengine_node_pool_option.oci_oke_node_pool_option.sources : source.image_id if length(regexall("Oracle-Linux-${var.node_linux_version}-20[0-9]*.*", source.source_name)) > 0], 0) : var.node_image_id
-    source_type = "IMAGE"
+    image_id                = var.node_image_id == "" ? element([for source in data.oci_containerengine_node_pool_option.oci_oke_node_pool_option.sources : source.image_id if length(regexall("Oracle-Linux-${var.node_linux_version}-20[0-9]*.*", source.source_name)) > 0], 0) : var.node_image_id
+    source_type             = "IMAGE"
+    boot_volume_size_in_gbs = var.node_pool_boot_volume_size_in_gbs
   }
 
   ssh_public_key = var.ssh_public_key != "" ? var.ssh_public_key : tls_private_key.public_private_key_pair.public_key_openssh

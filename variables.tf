@@ -85,6 +85,10 @@ variable "node_image_id" {
   default = ""
 }
 
+variable "node_pool_boot_volume_size_in_gbs" {
+  default = 50
+}
+
 variable "node_ocpus" {
   default = 1
 }
@@ -115,6 +119,10 @@ variable "cluster_options_add_ons_is_kubernetes_dashboard_enabled" {
 
 variable "cluster_options_add_ons_is_tiller_enabled" {
   default = true
+}
+
+variable "cluster_options_admission_controller_options_is_pod_security_policy_enabled" {
+  default = false
 }
 
 variable "node_pool_initial_node_labels_key" {
