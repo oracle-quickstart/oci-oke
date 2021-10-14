@@ -81,6 +81,10 @@ variable "node_shape" {
   default = "VM.Standard.E3.Flex"
 }
 
+variable "node_image_id" {
+  default = ""
+}
+
 variable "node_ocpus" {
   default = 1
 }
