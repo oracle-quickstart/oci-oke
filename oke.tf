@@ -73,7 +73,6 @@ resource "oci_containerengine_node_pool" "oci_oke_node_pool" {
       memory_in_gbs = var.node_memory
     }
   }
-
 }
 
 
