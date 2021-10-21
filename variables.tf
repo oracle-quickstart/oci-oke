@@ -141,3 +141,6 @@ variable "ssh_public_key" {
   default = ""
 }
 
+variable "defined_tags" {
+  default = {}
+}

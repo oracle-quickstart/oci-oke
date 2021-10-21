@@ -6,6 +6,7 @@ resource "oci_core_vcn" "oke_vcn" {
   cidr_block     = var.vcn_cidr
   compartment_id = var.compartment_ocid
   display_name   = "oke_vcn"
+  defined_tags   = var.defined_tags
 }
 
 resource "oci_core_service_gateway" "oke_sg" {
@@ -16,6 +17,7 @@ resource "oci_core_service_gateway" "oke_sg" {
   services {
     service_id = lookup(data.oci_core_services.AllOCIServices[0].services[0], "id")
   }
+  defined_tags = var.defined_tags
 }
 
 resource "oci_core_nat_gateway" "oke_natgw" {
@@ -23,6 +25,7 @@ resource "oci_core_nat_gateway" "oke_natgw" {
   compartment_id = var.compartment_ocid
   display_name   = "oke_natgw"
   vcn_id         = oci_core_vcn.oke_vcn[0].id
+  defined_tags   = var.defined_tags
 }
 
 resource "oci_core_route_table" "oke_rt_via_natgw_and_sg" {
@@ -30,6 +33,7 @@ resource "oci_core_route_table" "oke_rt_via_natgw_and_sg" {
   compartment_id = var.compartment_ocid
   vcn_id         = oci_core_vcn.oke_vcn[0].id
   display_name   = "oke_rt_via_natgw"
+  defined_tags   = var.defined_tags
 
   route_rules {
     destination       = "0.0.0.0/0"
@@ -49,6 +53,7 @@ resource "oci_core_internet_gateway" "oke_igw" {
   compartment_id = var.compartment_ocid
   display_name   = "oke_igw"
   vcn_id         = oci_core_vcn.oke_vcn[0].id
+  defined_tags   = var.defined_tags
 }
 
 resource "oci_core_route_table" "oke_rt_via_igw" {
@@ -56,6 +61,7 @@ resource "oci_core_route_table" "oke_rt_via_igw" {
   compartment_id = var.compartment_ocid
   vcn_id         = oci_core_vcn.oke_vcn[0].id
   display_name   = "oke_rt_via_igw"
+  defined_tags   = var.defined_tags
 
   route_rules {
     destination       = "0.0.0.0/0"
@@ -69,6 +75,7 @@ resource "oci_core_security_list" "oke_api_endpoint_subnet_sec_list" {
   compartment_id = var.compartment_ocid
   display_name   = "oke_api_endpoint_subnet_sec_list"
   vcn_id         = oci_core_vcn.oke_vcn[0].id
+  defined_tags   = var.defined_tags
 
   # egress_security_rules
 
@@ -147,6 +154,7 @@ resource "oci_core_security_list" "oke_nodepool_subnet_sec_list" {
   compartment_id = var.compartment_ocid
   display_name   = "oke_nodepool_subnet_sec_list"
   vcn_id         = oci_core_vcn.oke_vcn[0].id
+  defined_tags   = var.defined_tags
 
   egress_security_rules {
     protocol         = "All"
@@ -239,6 +247,7 @@ resource "oci_core_subnet" "oke_api_endpoint_subnet" {
   security_list_ids          = [oci_core_vcn.oke_vcn[0].default_security_list_id, oci_core_security_list.oke_api_endpoint_subnet_sec_list[0].id]
   route_table_id             = var.is_api_endpoint_subnet_public ? oci_core_route_table.oke_rt_via_igw[0].id : oci_core_route_table.oke_rt_via_natgw_and_sg[0].id
   prohibit_public_ip_on_vnic = var.is_api_endpoint_subnet_public ? false : true
+  defined_tags               = var.defined_tags
 }
 
 resource "oci_core_subnet" "oke_lb_subnet" {
@@ -251,6 +260,7 @@ resource "oci_core_subnet" "oke_lb_subnet" {
   security_list_ids          = [oci_core_vcn.oke_vcn[0].default_security_list_id]
   route_table_id             = var.is_lb_subnet_public ? oci_core_route_table.oke_rt_via_igw[0].id : oci_core_route_table.oke_rt_via_natgw_and_sg[0].id
   prohibit_public_ip_on_vnic = var.is_lb_subnet_public ? false : true
+  defined_tags               = var.defined_tags
 }
 
 resource "oci_core_subnet" "oke_nodepool_subnet" {
@@ -263,6 +273,7 @@ resource "oci_core_subnet" "oke_nodepool_subnet" {
   security_list_ids          = [oci_core_vcn.oke_vcn[0].default_security_list_id, oci_core_security_list.oke_nodepool_subnet_sec_list[0].id]
   route_table_id             = var.is_nodepool_subnet_public ? oci_core_route_table.oke_rt_via_igw[0].id : oci_core_route_table.oke_rt_via_natgw_and_sg[0].id
   prohibit_public_ip_on_vnic = var.is_nodepool_subnet_public ? false : true
+  defined_tags               = var.defined_tags
 }
 
 
