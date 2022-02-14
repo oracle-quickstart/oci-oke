@@ -36,6 +36,7 @@ resource "oci_containerengine_cluster" "oci_oke_cluster" {
       services_cidr = var.services_cidr
     }
   }
+  defined_tags = var.defined_tags
 }
 
 resource "oci_containerengine_node_pool" "oci_oke_node_pool" {
@@ -73,6 +74,7 @@ resource "oci_containerengine_node_pool" "oci_oke_node_pool" {
       memory_in_gbs = var.node_memory
     }
   }
+  defined_tags = var.defined_tags
 }
 
 
