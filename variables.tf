@@ -70,7 +70,7 @@ variable "is_nodepool_subnet_public" {
 }
 
 variable "k8s_version" {
-  default = "v1.20.11"
+  default = "v1.27.2"
 }
 
 variable "pool_name" {
